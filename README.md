@@ -169,6 +169,11 @@ docs/workflow.mmd                # 생성된 다이어그램 소스
 - LangChain 공식 문서의 `with_structured_output`, Chroma/Tavily 통합 가이드
 - S&P500 섹터 ETF 매핑은 State Street SPDR 섹터 ETF(XLK/XLF/XLE 등) 공개 정보를 참고
 
+## WORKFLOW
+```
+docs/workflow에서 확인할 수 있습니다.
+```
+
 ## License
 MIT License
 
