@@ -43,55 +43,6 @@ output_parser (OutputParser: 최종 구조화 응답)
 SqliteSaver checkpointer (세션별 대화 상태 영속화) + Chroma 벡터스토어 (장기 지식)
 ```
 
-### Workflow 다이어그램
-
-실제 컴파일된 그래프에서 `get_graph().draw_mermaid()`로 직접 추출한 다이어그램입니다
-(수작업이 아니라 `python -m scripts.export_graph_diagram` 실행 결과 → [docs/workflow.mmd](docs/workflow.mmd)).
-
-```mermaid
----
-config:
-  flowchart:
-    curve: linear
----
-graph TD;
-	__start__([<p>__start__</p>]):::first
-	guardrail(guardrail)
-	router(router)
-	macro(macro)
-	sector(sector)
-	news(news)
-	bookmark(bookmark)
-	rag_retrieve(rag_retrieve)
-	agent_llm(agent_llm)
-	tools(tools)
-	output_parser(output_parser)
-	__end__([<p>__end__</p>]):::last
-	__start__ --> guardrail;
-	agent_llm -.-> output_parser;
-	agent_llm -.-> tools;
-	bookmark --> output_parser;
-	guardrail -. &nbsp;blocked&nbsp; .-> __end__;
-	guardrail -. &nbsp;ok&nbsp; .-> router;
-	macro --> sector;
-	news --> output_parser;
-	rag_retrieve --> agent_llm;
-	router -.-> bookmark;
-	router -. &nbsp;dashboard&nbsp; .-> macro;
-	router -. &nbsp;free_query&nbsp; .-> rag_retrieve;
-	sector --> news;
-	tools --> agent_llm;
-	output_parser --> __end__;
-	classDef default fill:#f2f0ff,line-height:1.2
-	classDef first fill-opacity:0
-	classDef last fill:#bfb6fc
-```
-
-**조건부 분기 2곳 + 반복(loop) 1곳**
-- `guardrail` → `blocked`(즉시 종료) / `ok`(라우터로) — 조건부 분기 #1
-- `router` → `dashboard` / `bookmark` / `free_query` 3분기 — 조건부 분기 #2
-- `agent_llm` ⇄ `tools` — LLM이 도구 호출을 계속 원하는 동안 반복되는 ReAct 루프
-
 ## 3. 설치 및 실행 방법
 
 ```bash
@@ -129,7 +80,7 @@ python -m scripts.export_graph_diagram
 ([app/llm.py](app/llm.py)). OpenRouter는 임베딩 엔드포인트가 없어 RAG용 임베딩은 이
 설정에서도 계속 Google을 사용합니다.
 
-## 4. 사용된 Tool / RAG / Memory / Middleware
+## 3. 사용된 Tool / RAG / Memory / Middleware
 
 ### Tool (4종, [app/tools](app/tools))
 | Tool | 설명 |
@@ -175,7 +126,7 @@ python -m scripts.export_graph_diagram
 - `news` 노드: 기사별 감성 판단을 `MarketSentimentSnapshot`으로 구조화
 - `output_parser` 노드: 자유 질의 최종 답변을 `AgentAnswer`(answer/sources/used_tools)로 구조화
 
-## 5. 한계점 및 향후 개선 방향
+## 4. 한계점 및 향후 개선 방향
 
 - **매크로 지표가 공식 통계(FRED 등)가 아닌 시장 프록시(yfinance)**: CPI·실업률 등 진짜
   거시 지표는 발표 주기가 느리고 별도 API 키가 필요해 이번 범위에서는 제외했습니다.
@@ -190,14 +141,8 @@ python -m scripts.export_graph_diagram
 - **대시보드 새로고침이 매번 Tool 3종 + LLM 호출을 직렬 실행**: 특히 뉴스 청크 임베딩 적재가
   건별로 API를 호출해 새로고침 1회에 1~2분이 걸릴 수 있습니다. 캐싱, 배치 임베딩, 병렬 실행
   (fan-out/fan-in)으로 개선 여지가 있습니다.
-- **Gemini 무료 티어 quota가 계정마다 다름**: 개발/테스트 중 사용한 Google 계정은
-  `gemini-2.5-flash` 기준 일일 20회 요청으로 제한되어 있었습니다(계정별로 다를 수 있음).
-  대화를 몇 번만 주고받아도 한도에 닿을 수 있으니, 실행 전 [Google AI Studio](https://aistudio.google.com/apikey)
-  에서 결제 계정을 연결하거나 `LLM_PROVIDER=openai`로 전환하는 것을 권장합니다. 한도 초과 시
-  `error_handler` 미들웨어가 예외를 흡수해 그래프가 죽지 않고 `state["error"]`로 사용자에게
-  안내하도록 처리되어 있습니다(Streamlit 화면에 경고 배너로 표시).
 
-## 6. 프로젝트 구조
+## 5. 프로젝트 구조
 
 ```
 app/
